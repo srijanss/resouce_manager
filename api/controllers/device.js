@@ -2,7 +2,8 @@
     // Include our "db"
     var db = require('../../config/db')();
     // Exports all the functions to perform on the db
-    module.exports = {getdevices, register, getapp, saveapp, updateapp, deleteapp};
+    module.exports = {getdevices, register, getdevice, saveapp, updateapp, deleteapp};
+    // module.exports = {getdevices, register, getdevice, getapp, saveapp, updateapp, deleteapp};
 
     //GET /device operationId
     function getdevices(req, res, next) {
@@ -13,39 +14,45 @@
         res.json({success: db.save(req.body), description: "Device added to the list!"});
     }
     //GET /device/{id} operationId
-    function getapp(req, res, next) {
+    // Get device info based on device id provided 
+    function getdevice(req, res, next) {
         var id = req.swagger.params.id.value; //req.swagger contains the path parameters
-        var deviceapp = db.find(id);
-        if(deviceapp) {
-            res.json(deviceapp);
+        var device = db.find(id);
+        if(device) {
+            device.app = db.findapp(id);
+            console.log(device);
+            res.json({device: device});
         }else {
             res.status(204).send();
         }       
     }
     //POST /device/{id} operatoinId
+    // post applications installed in the device
     function saveapp(req, res, next) {
         var id = req.swagger.params.id.value;
         res.json({success: db.saveApp(id, req.body), description: "Application added to the list"});
     }
-    // TODO : Update specific application based on application ID
-    //PUT /device/{id} operationId
+    //PUT /device/{id}/{app_id} operationId
+    // update specific application in the device
     function updateapp(req, res, next) {
         var id = req.swagger.params.id.value; //req.swagger contains the path parameters
         // req.body [{id:id, name:name, version:version}]
-        if(db.update(id, req.body)){
+        var app_id = req.swagger.params.app_id.value;
+        if(db.update(id, app_id, req.body)){
             res.json({success: 1, description: "Device app updated!"});
         }else{
             res.status(204).send();
         }
 
     }
-    // TODO : Delete specific application based on application ID
-    //DELETE /device/{id} operationId
+    //DELETE /device/{id}/{app_id} operationId
+    // delete specific application in the device
     function deleteapp(req, res, next) {
         var id = req.swagger.params.id.value; //req.swagger contains the path parameters
-        if(db.remove(id)){
+        var app_id = req.swagger.params.app_id.value;
+        if(db.remove(id, app_id)){
             res.json({success: 1, description: "Device app deleted!"});
-        }else{
+        } else {
             res.status(204).send();
         }
 

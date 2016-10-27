@@ -15,11 +15,11 @@ module.exports = function() {
             return 1;           
         },
         saveApp(id, app) {
-            deviceapp = {};
-            deviceapp.id = crypto.randomBytes(20).toString('hex');
-            deviceapp.device_id = id;
-            deviceapp.app = app
-            this.appList.push(deviceapp);
+            app.forEach(element =>{
+                element.id = crypto.randomBytes(20).toString('hex');
+                element.device_id = id;
+                this.appList.push(element);
+            });
             return 1;
         },
         /*
@@ -27,23 +27,30 @@ module.exports = function() {
          */
         find(id) {
             if(id) {
-                return this.appList.find(element => {
-                        return element.device_id === id;
+                return this.deviceList.find(element => {
+                        return element.id === id;
                     }); 
             }else {
                 return this.deviceList;
             }
         },
+        findapp(id) {
+            if(id) {
+                return this.appList.filter(element => {
+                    return element.device_id === id; 
+                });
+            }
+        },
         /*
          * Delete a specific app in the device with the given id.
          */
-        remove(id) {
+        remove(id, app_id) {
             var found = 0;
             this.appList = this.appList.filter(element => {
-                    if(element.device_id === id) {
+                    if(element.id === app_id && element.device_id === id) {
                         found = 1;
                     }else {
-                        return element.device_id !== id;
+                        return element.id !== app_id;
                     }
                 });
             return found;           
@@ -51,12 +58,13 @@ module.exports = function() {
         /*
          * Update a app in the device with the given id
          */
-        update(id, app) {
+        update(id, app_id, app) {
             var appIndex = this.appList.findIndex(element => {
-                return element.device_id === id;
+                return (element.device_id === id && element.id === app_id);
             });
             if(appIndex !== -1) {
-                this.appList[appIndex].app = app
+                this.appList[appIndex].name = app[0].name;
+                this.appList[appIndex].version = app[0].version;
                 return 1;
             }else {
                 return 0;
