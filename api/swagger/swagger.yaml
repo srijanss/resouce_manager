@@ -103,27 +103,6 @@ paths:
             $ref: "#/definitions/ErrorResponse"
   /device/{id}/{app_id}:
     x-swagger-router-controller: device
-  #   get:
-  #     description: Get device application information
-  #     operationId: getapp
-  #     parameters:
-  #       - name: id
-  #         type: string
-  #         in: path
-  #         required: true
-  #       - name: app_id
-  #         type: string
-  #         in: path
-  #         required: true
-  #     responses:
-  #       "200":
-  #         description: Success
-  #         schema:
-  #           $ref: "#/definitions/GetDeviceAppResponse"
-  #       default:
-  #         description: Error
-  #         schema:
-  #           $ref: "#/definitions/ErrorResponse"
     put:
       description: Update application in the device
       operationId: updateapp
@@ -191,9 +170,13 @@ definitions:
       - success
       - description
   GetDeviceResponse:
+    type: object
     required:
       - devices
+      - message
     properties:
+      message:
+        type: string
       devices:
         type: array
         items:
@@ -210,7 +193,11 @@ definitions:
   GetDeviceAppResponse:
     required:
       - device
+      - message
+    type: object
     properties:
+      message:
+        type: string
       device:
         type: object
         properties:

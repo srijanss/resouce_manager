@@ -7,7 +7,7 @@
 
     //GET /device operationId
     function getdevices(req, res, next) {
-      res.json({ devices: db.find()});
+        res.json({ devices: db.find(), message:"List of devices"});
     }
     //POST /device operationId
     function register(req, res, next) {
@@ -20,17 +20,23 @@
         var device = db.find(id);
         if(device) {
             device.app = db.findapp(id);
-            console.log(device);
-            res.json({device: device});
+            // console.log(device);
+            res.json({device: device, message:"List of devices"});
         }else {
-            res.status(204).send();
+            res.json({device: {}, message: "Device with id " + id +" not found"});
+            // res.status(204).send();
         }       
     }
     //POST /device/{id} operatoinId
     // post applications installed in the device
     function saveapp(req, res, next) {
         var id = req.swagger.params.id.value;
-        res.json({success: db.saveApp(id, req.body), description: "Application added to the list"});
+        var device = db.find(id);
+        if(device){
+            res.json({success: db.saveApp(id, req.body), description: "Application added to the list"});
+        } else {
+            res.json({success: 204, description: "Device with id " + id +" not found"});
+        }
     }
     //PUT /device/{id}/{app_id} operationId
     // update specific application in the device
@@ -41,7 +47,8 @@
         if(db.update(id, app_id, req.body)){
             res.json({success: 1, description: "Device app updated!"});
         }else{
-            res.status(204).send();
+            res.json({success: 204, description: "Device with id " + id +" not found"});
+            // res.status(204).send();
         }
 
     }
@@ -53,7 +60,8 @@
         if(db.remove(id, app_id)){
             res.json({success: 1, description: "Device app deleted!"});
         } else {
-            res.status(204).send();
+            res.json({success: 204, description: "Device with id " + id +" not found"});
+            // res.status(204).send();
         }
 
     }
