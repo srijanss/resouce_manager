@@ -4,6 +4,7 @@
 	Module Dependencies
 */
 
+var fs = require('fs');
 var events = require('events');
 var mqtt = require('mqtt');
 var inherits = require('inherits');
@@ -149,9 +150,10 @@ Client.prototype.getdevice = function(deviceID) {
 		topic_options.pop();
 		topic_options.push(deviceID);
 		tty_topic = this.create_topic(topic_options);
-		console.log(tty_topic);
+		// console.log(tty_topic);
 		this.subscribe(tty_topic);
 		this.conn.on('message', (topic, message) => {
+			console.log(topic, tty_topic);
 			if(topic === tty_topic) {
 				message = JSON.parse(message);
 				console.log(message);
@@ -170,15 +172,75 @@ Client.prototype.getdevice = function(deviceID) {
 					var deviceID = JSON.parse(message).deviceID;
 					topic_options.push(deviceID);
 					var payload = db.find(deviceID);
-					// console.log(payload);
-					that.publish(that.create_topic(topic_options), JSON.stringify(payload));
+					if(payload){
+						payload.app = db.findapp(deviceID);
+						// console.log(payload);
+						that.publish(that.create_topic(topic_options), JSON.stringify(payload));
+					} else {
+						that.publish(that.create_topic(topic_options), {status:'error', message:'Device not Found'});
+					}
+					topic_options.pop();
 				}
 			}
 		});
 	}
 
 };
-Client.prototype.saveapp = function() {};
+Client.prototype.saveapp = function(deviceID, applist) {
+	var that = this;
+	if(this.DEVICE_TYPE === 'TTY') {
+		var topic_options = ['saveapp', 'handshake'];
+		var tty_topic = this.create_topic(topic_options);
+		var apps;
+		fs.readFile(applist,  (err, data) => {
+			if(err) {
+				throw err;
+			}
+			apps = JSON.parse(data);
+			this.publish(tty_topic, {'status': true, 'deviceID':deviceID, 'applist':apps});
+			topic_options.pop();
+			topic_options.push(deviceID);
+			tty_topic = this.create_topic(topic_options);
+			this.subscribe(tty_topic);
+			this.conn.on('message', (topic, message) => {
+				if(topic === tty_topic) {
+					message = JSON.parse(message);
+					console.log(message);
+					that.emit('log_time');
+				}
+			});
+		});
+	} else if(this.DEVICE_TYPE === 'RR') {
+		var topic_options = ['saveapp', 'handshake'];
+		var rr_topic = this.create_topic(topic_options);
+		this.subscribe(rr_topic);
+		topic_options.pop();
+		this.conn.on('message', (topic, message) => {
+			// console.log(JSON.parse(message).status);
+			if(topic === rr_topic) {
+				if(JSON.parse(message).status) {
+					var deviceID = JSON.parse(message).deviceID;
+					var applist = JSON.parse(message).applist;
+					topic_options.push(deviceID);
+					if(db.find(deviceID)){
+						if(db.saveApp(deviceID, applist)) {
+							that.publish(that.create_topic(topic_options), 
+								JSON.stringify({status: 'success', message: 'Application Added to the device'}));
+						} else {
+							that.publish(that.create_topic(topic_options), 
+								JSON.stringify({status: 'error', message: 'Error Adding Application'}));
+						}
+					} else {
+						that.publish(that.create_topic(topic_options), 
+							JSON.stringify({status: 'error', message: 'Device Not Found'}));
+					// console.log(payload);
+					}
+					topic_options.pop();
+				}
+			}
+		});
+	}	
+};
 Client.prototype.updateapp = function() {};
 Client.prototype.deleteapp = function() {};
 

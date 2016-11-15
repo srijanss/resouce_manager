@@ -19,3 +19,5 @@ client.getdevices();
 
 // Handle Getdevice request for individual device
 client.getdevice();
+
+client.saveapp();

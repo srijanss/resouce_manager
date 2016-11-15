@@ -19,4 +19,8 @@ client.getdevices();
 // Get the specific device details
 if(process.argv.length > 2){
 	client.getdevice(process.argv[2]);
+	if(process.argv.length > 3) {
+	client.saveapp(process.argv[2], process.argv[3]);
 }
+}
+
