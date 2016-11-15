@@ -1,6 +1,20 @@
 'use strict';
 
+const Args = require('command-line-args');
 var mqttclient = require('./client');
+
+const optionsDefinitions = [
+	{ name: 'listdevices', type: Boolean },
+	{ name: 'listapps', type: Boolean },
+	{ name: 'install', alias: 'i', type: Boolean },
+	{ name: 'update', alias: 'u', type: Boolean },
+	{ name: 'remove', alias: 'r', type: Boolean },
+	{ name: 'deviceid', type: String },
+	{ name: 'appid', type: String },
+	{ name: 'applist', type: String },
+];
+
+const options = Args(optionsDefinitions);
 
 var client = new mqttclient({
 	host: '127.0.0.1',
@@ -14,19 +28,29 @@ client.timer();
 client.connect();
 
 // Get list of registered devices
-client.getdevices();
+if(options.listdevices){
+	client.getdevices();
+}
 
 // Get the specific device details
-if(process.argv.length > 2){
-	client.getdevice(process.argv[2]);
-} 
-// if(process.argv.length > 3) {
-// 	client.saveapp(process.argv[2], process.argv[3]);
-// }
-// if(process.argv.length > 3) {
-// 	client.deleteapp(process.argv[2], process.argv[3]);
-// }
-if(process.argv.length > 4) {
-	client.updateapp(process.argv[2], process.argv[4], process.argv[3]);	
+if(options.listapps){
+	client.getdevice(options.deviceid);
 }
+
+// Add application to the device
+if(options.install){
+ 	client.saveapp(options.deviceid, options.applist);
+}
+
+// Update application in the device
+if(options.update){
+	client.updateapp(options.deviceid, options.appid, options.applist);	
+}
+
+// Delete application from the device
+if(options.remove){
+	client.deleteapp(options.deviceid, options.appid);
+}
+
+// client.conn.end();
 

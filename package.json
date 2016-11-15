@@ -8,6 +8,7 @@
   "license": "",
   "main": "app.js",
   "dependencies": {
+    "command-line-args": "^3.0.3",
     "express": "^4.12.3",
     "inherits": "^2.0.3",
     "mosca": "^2.2.0",
