@@ -67,27 +67,32 @@ Client.prototype.publish = function(topic, payload) {
 Client.prototype.getdevices = function() {
 	var that = this;
 	if(this.DEVICE_TYPE === 'TTY'){
-		var topic_options = ['getdevices', 'lists'];
-		var topic = this.create_topic(topic_options);
-		this.publish(topic, {'status': true});
+		var topic_options = ['getdevices', 'handshake'];
+		var tty_topic = this.create_topic(topic_options);
+		this.publish(tty_topic, {'status': true});
 		topic_options.pop();
-		this.subscribe(this.create_topic(topic_options));
+		tty_topic = this.create_topic(topic_options);
+		this.subscribe(tty_topic);
 		this.conn.on('message', (topic, message) => {
-			message = JSON.parse(message);
-			console.log(message);
-			that.emit('log_time');
+			if(topic === tty_topic) {
+				message = JSON.parse(message);
+				console.log(message);
+				that.emit('log_time');
+			}
 		});
 	} else if(this.DEVICE_TYPE === 'RR') {
-		var topic_options = ['getdevices', 'lists'];
-		var topic = this.create_topic(topic_options);
-		this.subscribe(topic);
+		var topic_options = ['getdevices', 'handshake'];
+		var rr_topic = this.create_topic(topic_options);
+		this.subscribe(rr_topic);
 		topic_options.pop();
 		this.conn.on('message', (topic, message) => {
 			// console.log(JSON.parse(message).status);
-			if(JSON.parse(message).status) {
-				var payload = db.find();
-				// console.log(payload);
-				that.publish(that.create_topic(topic_options), JSON.stringify(payload));
+			if(topic === rr_topic) {
+				if(JSON.parse(message).status) {
+					var payload = db.find();
+					// console.log(payload);
+					that.publish(that.create_topic(topic_options), JSON.stringify(payload));
+				}
 			}
 		});
 	}
@@ -104,10 +109,13 @@ Client.prototype.register = function(device) {
 			that.publish(that.TOPIC, payload);
 			that.TOPIC_OPTS.push(this.options.clientId);
 			// console.log('Subscribed ', that.create_topic(topic_options));
-			that.subscribe(that.create_topic(that.TOPIC_OPTS));
+			that.TOPIC = that.create_topic(that.TOPIC_OPTS);
+			that.subscribe(that.TOPIC);
 			this.on('message', (topic, message) => {
 				// console.log(JSON.parse(message).message);
-				that.emit('log_time');
+				if(topic === that.TOPIC) {
+					that.emit('log_time');
+				}
 			});	
 		});
 	} else if (this.DEVICE_TYPE === 'RR') { // Registration part done in RR
@@ -116,7 +124,7 @@ Client.prototype.register = function(device) {
 			that.subscribe(that.create_topic(that.TOPIC_OPTS));
 			this.on('message', (topic, message) => {
 				if(topic === that.TOPIC) {
-					console.log('Registerting new device');
+					console.log('Registering new device');
 					message = JSON.parse(message);
 					that.TOPIC_OPTS.push(message.message);
 					// console.log(message.device);
@@ -132,7 +140,44 @@ Client.prototype.register = function(device) {
 	}
 };
 
-Client.prototype.getdevice = function() {};
+Client.prototype.getdevice = function(deviceID) {
+	var that = this;
+	if(this.DEVICE_TYPE === 'TTY') {
+		var topic_options = ['getdevice', 'handshake'];
+		var tty_topic = this.create_topic(topic_options);
+		this.publish(tty_topic, {'status': true, 'deviceID':deviceID});
+		topic_options.pop();
+		topic_options.push(deviceID);
+		tty_topic = this.create_topic(topic_options);
+		console.log(tty_topic);
+		this.subscribe(tty_topic);
+		this.conn.on('message', (topic, message) => {
+			if(topic === tty_topic) {
+				message = JSON.parse(message);
+				console.log(message);
+				that.emit('log_time');
+			}
+		});
+	} else if(this.DEVICE_TYPE === 'RR') {
+		var topic_options = ['getdevice', 'handshake'];
+		var rr_topic = this.create_topic(topic_options);
+		this.subscribe(rr_topic);
+		topic_options.pop();
+		this.conn.on('message', (topic, message) => {
+			// console.log(JSON.parse(message).status);
+			if(topic === rr_topic) {
+				if(JSON.parse(message).status) {
+					var deviceID = JSON.parse(message).deviceID;
+					topic_options.push(deviceID);
+					var payload = db.find(deviceID);
+					// console.log(payload);
+					that.publish(that.create_topic(topic_options), JSON.stringify(payload));
+				}
+			}
+		});
+	}
+
+};
 Client.prototype.saveapp = function() {};
 Client.prototype.updateapp = function() {};
 Client.prototype.deleteapp = function() {};

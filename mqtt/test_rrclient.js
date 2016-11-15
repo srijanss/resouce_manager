@@ -13,19 +13,9 @@ client.connect();
 
 // Handle Registration Request
 client.register();
+
+// Handle Getdevices Request
 client.getdevices();
 
-// client.conn.on('connect', function() {
-// 	var topic_options = ['register'];
-// 	var topic = client.create_topic(topic_options);
-// 	console.log('Subscribed ', topic);
-// 	client.subscribe(client.create_topic(topic_options));
-// 	client.conn.on('message', (topic, message) => {
-// 		message = JSON.parse(message);
-// 		topic_options.push(message.message);
-// 		// console.log(topic_options);
-// 		var payload = {"message" : "success"};
-// 		console.log('Published ', client.create_topic(topic_options), payload)
-// 		client.publish(client.create_topic(topic_options), payload);
-// 	});
-// });
+// Handle Getdevice request for individual device
+client.getdevice();
