@@ -20,4 +20,8 @@ client.getdevices();
 // Handle Getdevice request for individual device
 client.getdevice();
 
+// Add application to Device
 client.saveapp();
+
+// Update application in the Device
+client.updateapp();
