@@ -25,3 +25,6 @@ client.saveapp();
 
 // Update application in the Device
 client.updateapp();
+
+// Delete application from the Device
+client.deleteapp();

@@ -23,6 +23,9 @@ if(process.argv.length > 2){
 // if(process.argv.length > 3) {
 // 	client.saveapp(process.argv[2], process.argv[3]);
 // }
+// if(process.argv.length > 3) {
+// 	client.deleteapp(process.argv[2], process.argv[3]);
+// }
 if(process.argv.length > 4) {
 	client.updateapp(process.argv[2], process.argv[4], process.argv[3]);	
 }

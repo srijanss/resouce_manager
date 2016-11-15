@@ -186,6 +186,7 @@ Client.prototype.getdevice = function(deviceID) {
 	}
 
 };
+
 Client.prototype.saveapp = function(deviceID, applist) {
 	var that = this;
 	if(this.DEVICE_TYPE === 'TTY') {
@@ -241,6 +242,7 @@ Client.prototype.saveapp = function(deviceID, applist) {
 		});
 	}	
 };
+
 Client.prototype.updateapp = function(deviceID, appID, applist) {
 	var that = this;
 	if(this.DEVICE_TYPE === 'TTY') {
@@ -301,9 +303,61 @@ Client.prototype.updateapp = function(deviceID, appID, applist) {
 			}
 		});
 	}
-
 };
-Client.prototype.deleteapp = function() {};
+
+Client.prototype.deleteapp = function(deviceID, appID) {
+	var that = this;
+	if(this.DEVICE_TYPE === 'TTY') {
+		var topic_options = ['deleteapp', 'handshake'];
+		var tty_topic = this.create_topic(topic_options);
+		this.publish(tty_topic, {'status': true, 'deviceID':deviceID, 'appID':appID});
+		topic_options.pop();
+		topic_options.push(deviceID);
+		topic_options.push(appID);
+		tty_topic = this.create_topic(topic_options);
+		// console.log(tty_topic);
+		this.subscribe(tty_topic);
+		this.conn.on('message', (topic, message) => {
+			// console.log(topic, tty_topic);
+			if(topic === tty_topic) {
+				message = JSON.parse(message);
+				console.log(message);
+				that.emit('log_time');
+			}
+		});
+	} else if(this.DEVICE_TYPE === 'RR') {
+		var topic_options = ['deleteapp', 'handshake'];
+		var rr_topic = this.create_topic(topic_options);
+		this.subscribe(rr_topic);
+		topic_options.pop();
+		this.conn.on('message', (topic, message) => {
+			// console.log(JSON.parse(message).status);
+			if(topic === rr_topic) {
+				if(JSON.parse(message).status) {
+					var deviceID = JSON.parse(message).deviceID;
+					var appID = JSON.parse(message).appID;
+					topic_options.push(deviceID);
+					topic_options.push(appID);
+					var device = db.find(deviceID);
+					// console.log(applist);
+					if(device){
+						if(db.remove(deviceID, appID)){
+							// console.log(that.create_topic(topic_options));
+							that.publish(that.create_topic(topic_options), {status:'success', message:'Application Deleted'});
+						} else {
+							that.publish(that.create_topic(topic_options), {status:'error', message:'Error Deleting Application'});
+						}
+						// console.log(payload);
+					} else {
+						that.publish(that.create_topic(topic_options), {status:'error', message:'Device not Found'});
+					}
+					topic_options.pop();
+					topic_options.pop();
+				}
+			}
+		});
+	}
+};
 
 // Timer api to log time
 Client.prototype.timer = function() {
