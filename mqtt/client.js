@@ -10,6 +10,9 @@ var mqtt = require('mqtt');
 var inherits = require('inherits');
 var db = require('../config/db')();
 
+var DockerCommand = require('../../device/scripts/dockercommand');
+var dockercmd = new DockerCommand();
+
 
 var defaultOptions = {
 	host: '127.0.0.1',
@@ -105,7 +108,7 @@ Client.prototype.register = function(device) {
 	this.TOPIC = this.create_topic(this.TOPIC_OPTS);
 	if(this.DEVICE_TYPE === 'IOT') { // Registration request from device
 		this.conn.on('connect', function() {
-			var payload = {"message" : that.conn.options.clientId, "device": device};
+			var payload = {"deviceID" : that.conn.options.clientId, "device": device};
 			// console.log('Published ', topic, payload);
 			that.publish(that.TOPIC, payload);
 			that.TOPIC_OPTS.push(this.options.clientId);
@@ -127,8 +130,9 @@ Client.prototype.register = function(device) {
 				if(topic === that.TOPIC) {
 					console.log('Registering new device');
 					message = JSON.parse(message);
-					that.TOPIC_OPTS.push(message.message);
+					that.TOPIC_OPTS.push(message.deviceID);
 					// console.log(message.device);
+					message.device['id'] = message.deviceID;
 					db.save(message.device);
 					that.DEVICE_REGISTERED = true;
 					var payload = {"message" : "registration success"};
@@ -187,30 +191,43 @@ Client.prototype.getdevice = function(deviceID) {
 
 };
 
-Client.prototype.saveapp = function(deviceID, applist) {
+// Save App Details that is Installed in Device to RR
+Client.prototype.saveapp_details = function(deviceID, applist, appid) {
 	var that = this;
 	if(this.DEVICE_TYPE === 'TTY') {
 		var topic_options = ['saveapp', 'handshake'];
 		var tty_topic = this.create_topic(topic_options);
-		var apps;
-		fs.readFile(applist,  (err, data) => {
-			if(err) {
-				throw err;
+		this.publish(tty_topic, {'status': true, 'deviceID':deviceID, 'applist':applist, 'appID':appid});
+		topic_options.pop();
+		topic_options.push(deviceID);
+		tty_topic = this.create_topic(topic_options);
+		this.subscribe(tty_topic);
+		this.conn.on('message', (topic, message) => {
+			if(topic === tty_topic) {
+				message = JSON.parse(message);
+				console.log(message);
+				that.emit('log_time');
 			}
-			apps = JSON.parse(data);
-			this.publish(tty_topic, {'status': true, 'deviceID':deviceID, 'applist':apps});
-			topic_options.pop();
-			topic_options.push(deviceID);
-			tty_topic = this.create_topic(topic_options);
-			this.subscribe(tty_topic);
-			this.conn.on('message', (topic, message) => {
-				if(topic === tty_topic) {
-					message = JSON.parse(message);
-					console.log(message);
-					that.emit('log_time');
-				}
-			});
 		});
+		// var apps;
+		// fs.readFile(applist,  (err, data) => {
+		// 	if(err) {
+		// 		throw err;
+		// 	}
+		// 	apps = JSON.parse(data);
+		// 	this.publish(tty_topic, {'status': true, 'deviceID':deviceID, 'applist':apps});
+		// 	topic_options.pop();
+		// 	topic_options.push(deviceID);
+		// 	tty_topic = this.create_topic(topic_options);
+		// 	this.subscribe(tty_topic);
+		// 	this.conn.on('message', (topic, message) => {
+		// 		if(topic === tty_topic) {
+		// 			message = JSON.parse(message);
+		// 			console.log(message);
+		// 			that.emit('log_time');
+		// 		}
+		// 	});
+		// });
 	} else if(this.DEVICE_TYPE === 'RR') {
 		var topic_options = ['saveapp', 'handshake'];
 		var rr_topic = this.create_topic(topic_options);
@@ -221,10 +238,11 @@ Client.prototype.saveapp = function(deviceID, applist) {
 			if(topic === rr_topic) {
 				if(JSON.parse(message).status) {
 					var deviceID = JSON.parse(message).deviceID;
-					var applist = JSON.parse(message).applist;
+					var apps = JSON.parse(message).applist;
+					var appID = JSON.parse(message).appID;
 					topic_options.push(deviceID);
 					if(db.find(deviceID)){
-						if(db.saveApp(deviceID, applist)) {
+						if(db.saveApp(deviceID, apps, appID)) {
 							that.publish(that.create_topic(topic_options), 
 								JSON.stringify({status: 'success', message: 'Application Added to the device'}));
 						} else {
@@ -240,10 +258,11 @@ Client.prototype.saveapp = function(deviceID, applist) {
 				}
 			}
 		});
-	}	
+	}
 };
 
-Client.prototype.updateapp = function(deviceID, appID, applist) {
+// Update App Details that is Updated in Device to RR
+Client.prototype.updateapp_details = function(deviceID, appID, applist) {
 	var that = this;
 	if(this.DEVICE_TYPE === 'TTY') {
 		var topic_options = ['udpateapp', 'handshake'];
@@ -305,7 +324,8 @@ Client.prototype.updateapp = function(deviceID, appID, applist) {
 	}
 };
 
-Client.prototype.deleteapp = function(deviceID, appID) {
+// Delete App Details that is Removed from Device to RR
+Client.prototype.deleteapp_details = function(deviceID, appID) {
 	var that = this;
 	if(this.DEVICE_TYPE === 'TTY') {
 		var topic_options = ['deleteapp', 'handshake'];
@@ -354,6 +374,140 @@ Client.prototype.deleteapp = function(deviceID, appID) {
 					topic_options.pop();
 					topic_options.pop();
 				}
+			}
+		});
+	}
+};
+
+// Install or Update Application in IOT Device
+Client.prototype.install_app = function(topicheader, clientId, applist) {
+	var that = this;
+	if(this.DEVICE_TYPE === 'IOT') {
+		var topic_options = [topicheader, that.conn.options.clientId];
+		var iot_topic = this.create_topic(topic_options);
+		this.subscribe(iot_topic);
+		console.log('Subscribed to topic ' + iot_topic);
+		// topic_options.pop();
+		this.conn.on('message', (topic, message) => {
+			// console.log(JSON.parse(message).status);
+			if(topic === iot_topic) {
+				console.log(' Message received from Published install option');
+				var applist = JSON.parse(message).applist;
+				applist.forEach(app =>{
+					dockercmd.run(app.name, '10011:10010');
+					dockercmd.once('imagerunning', () => {
+						dockercmd.imageID(app.name);
+						dockercmd.once('gotimageID', () => {
+							// res.json({'imageid': dockercmd.IMAGEID, 'status': 'Image Running'});
+							console.log({'imageid': dockercmd.IMAGEID, 'status': 'Image Running'});
+							topic_options.push('getimageid');
+							that.publish(that.create_topic(topic_options), {'imageid':dockercmd.IMAGEID});
+							topic_options.pop();
+						});
+					});
+				});
+			}
+		});
+	} else if(this.DEVICE_TYPE === 'TTY') {
+		var topic_options = [topicheader, clientId];
+		var tty_topic = this.create_topic(topic_options);
+		fs.readFile(applist,  (err, data) => {
+			if(err) {
+				throw err;
+			}
+			var apps = JSON.parse(data);
+			this.publish(tty_topic, {'applist':apps});
+			// topic_options.pop();
+			topic_options.push('getimageid');
+			tty_topic = this.create_topic(topic_options);
+			this.subscribe(tty_topic);
+			this.conn.on('message', (topic, message) => {
+				if(topic === tty_topic) {
+					message = JSON.parse(message);
+					// console.log(message);
+					// applist.appid = message.imageid;
+					that.saveapp_details(clientId, apps, message.imageid);
+					// that.emit('log_time');
+				}
+			});
+		});
+	}
+};
+
+// // Update Application in IOT Device
+// Client.prototype.update_app = function() {
+
+// };
+
+// Delete Application in IOT Device
+Client.prototype.delete_app = function(clientId, imageID) {
+	var that = this;
+	if(this.DEVICE_TYPE === 'IOT') {
+		var topic_options = ['deleteapp', that.conn.options.clientId];
+		var iot_topic = this.create_topic(topic_options);
+		this.subscribe(iot_topic);
+		// topic_options.pop();
+		this.conn.on('message', (topic, message) => {
+			// console.log(JSON.parse(message).status);
+			if(topic === iot_topic) {
+				var appID = JSON.parse(message).appID;
+				console.log('Image to remove ' + appID);
+				dockercmd.remove_container(appID);
+				var containerremove_handler;
+				var imageremove_handler;
+				var nocontainer_handler;
+				var noimage_handler;
+				dockercmd.once('containerremoved', containerremove_handler = function (){
+					dockercmd.remove_image(appID);
+					console.log("IMAGE : " + appID);
+					dockercmd.removeListener('nocontainer', nocontainer_handler);
+				});
+				dockercmd.once('imageremoved', imageremove_handler = function (){
+					// res.json({'success': 1, 'description': 'Image removed successfully'});
+					console.log({'success': 1, 'description': 'Image removed successfully'});
+					topic_options.push('imagedeleted');
+					that.publish(that.create_topic(topic_options), {'status':'success', 'message': 'Application Image Deleted'});
+					topic_options.pop();
+					// console.log('Restart iot-device after removal');
+					dockercmd.removeListener('noimage', noimage_handler);
+				});	
+				dockercmd.once('nocontainer', nocontainer_handler = function (){
+					console.log("NOCONTAINER : " + appID);
+					// res.json({'success': 1, 'description': 'Image doesnot exists'});
+					console.log({'success': 1, 'description': 'Image doesnot exists'});
+					topic_options.push('imagedeleted');
+					that.publish(that.create_topic(topic_options), {'status':'error', 'message': 'Image doesnot exists'});
+					topic_options.pop();
+					dockercmd.removeListener('containerremoved', containerremove_handler);
+					dockercmd.removeListener('noimage', noimage_handler);
+					dockercmd.removeListener('imageremoved', imageremove_handler);
+				});
+				dockercmd.once('noimage', noimage_handler = function (){
+					// res.json({'success': 1, 'description': 'Image doesnot exists'});
+					console.log({'success': 1, 'description': 'Image doesnot exists'});
+					topic_options.push('imagedeleted');
+					that.publish(that.create_topic(topic_options), {'status':'error', 'message': 'Image doesnot exists'});
+					topic_options.pop();
+					dockercmd.removeListener('containerremoved', containerremove_handler);
+					dockercmd.removeListener('imageremoved', imageremove_handler);
+					dockercmd.removeListener('nocontainer', nocontainer_handler);
+				});	
+			}
+		});
+	} else if(this.DEVICE_TYPE === 'TTY') {
+		var topic_options = ['deleteapp', clientId];
+		var tty_topic = this.create_topic(topic_options);
+		this.publish(tty_topic, {'appID':imageID});
+		// topic_options.pop();
+		topic_options.push('imagedeleted');
+		tty_topic = this.create_topic(topic_options);
+		this.subscribe(tty_topic);
+		this.conn.on('message', (topic, message) => {
+			if(topic === tty_topic) {
+				message = JSON.parse(message);
+				// console.log(message);
+				// that.emit('log_time');
+				that.deleteapp_details(clientId, imageID);
 			}
 		});
 	}

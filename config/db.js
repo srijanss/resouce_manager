@@ -10,13 +10,14 @@ module.exports = function() {
          * Save the device inside the "db".
          */
         save(device) {
-            device.id = crypto.randomBytes(20).toString('hex'); // fast enough for our purpose
+            // device.id = crypto.randomBytes(20).toString('hex'); // fast enough for our purpose
             this.deviceList.push(device);
             return 1;           
         },
-        saveApp(id, app) {
+        saveApp(id, app, appID) {
             app.forEach(element =>{
-                element.id = crypto.randomBytes(20).toString('hex');
+                // element.id = crypto.randomBytes(20).toString('hex');
+                element.id = appID;
                 element.device_id = id;
                 this.appList.push(element);
             });

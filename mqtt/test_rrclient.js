@@ -21,10 +21,10 @@ client.getdevices();
 client.getdevice();
 
 // Add application to Device
-client.saveapp();
+client.saveapp_details();
 
 // Update application in the Device
-client.updateapp();
+client.updateapp_details();
 
 // Delete application from the Device
-client.deleteapp();
+client.deleteapp_details();

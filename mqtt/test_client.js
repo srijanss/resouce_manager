@@ -15,3 +15,7 @@ var device = {
 };
 // Register with RR
 client.register(device);
+
+client.install_app('installapp');
+client.install_app('updateapp');
+client.delete_app();

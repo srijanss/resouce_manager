@@ -11,6 +11,8 @@
     }
     //POST /device operationId
     function register(req, res, next) {
+        console.log(req.connection.remoteAddress);
+        // console.log(req.headers);
         res.json({success: db.save(req.body), description: "Device added to the list!"});
     }
     //GET /device/{id} operationId

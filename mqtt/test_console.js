@@ -39,17 +39,19 @@ if(options.listapps){
 
 // Add application to the device
 if(options.install){
- 	client.saveapp(options.deviceid, options.applist);
+ 	// client.saveapp_details(options.deviceid, options.applist);
+ 	client.install_app('installapp', options.deviceid, options.applist);
 }
 
 // Update application in the device
 if(options.update){
-	client.updateapp(options.deviceid, options.appid, options.applist);	
+	// client.updateapp_details(options.deviceid, options.appid, options.applist);	
+	client.install_app('updateapp', options.deviceid, options.appid, options.applist);	
 }
 
 // Delete application from the device
 if(options.remove){
-	client.deleteapp(options.deviceid, options.appid);
+	client.delete_app(options.deviceid, options.appid);
 }
 
 // client.conn.end();
