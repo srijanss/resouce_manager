@@ -161,8 +161,8 @@ definitions:
     type: object
     properties:
       success:
-        type: number
-        description: returns 1 if successful
+        type: string
+        description: returns device or app ID
       description:
         type: string
         description: a short comment
@@ -229,9 +229,9 @@ definitions:
   Device:
     type: object
     properties:
-      id:
-        type: string
-        description: Device ID
+      # id:
+      #   type: string
+      #   description: Device ID
       location:
         type: string
         description: Device Location
@@ -241,6 +241,7 @@ definitions:
           type: string
         description: Device Type or Device Capability
     required:
+      # - id
       - location
       - device_type
   Application:
@@ -248,15 +249,16 @@ definitions:
     items:
       type: object
       properties:
-        id:
-          type: string
-          description: Application ID
-        name:
+        # id:
+        #   type: string
+        #   description: Application ID
+        image:
           type: string
           description: Application name
-        version:
-          type: string
-          description: Application version
+        # version:
+        #   type: string
+          # description: Application version
       required:
-        - name
-        - version
+        # - id
+        - image
+        # - version

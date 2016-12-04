@@ -242,7 +242,7 @@ Client.prototype.saveapp_details = function(deviceID, applist, appid) {
 					var appID = JSON.parse(message).appID;
 					topic_options.push(deviceID);
 					if(db.find(deviceID)){
-						if(db.saveApp(deviceID, apps, appID)) {
+						if(db.saveApp(deviceID, apps, appID) !== "204") {
 							that.publish(that.create_topic(topic_options), 
 								JSON.stringify({status: 'success', message: 'Application Added to the device'}));
 						} else {

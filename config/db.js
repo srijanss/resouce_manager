@@ -1,5 +1,5 @@
 'use strict;'
-//Include crypto to generate the movie id
+//Include crypto to generate the device and app id for http case
 var crypto = require('crypto');
 
 module.exports = function() {
@@ -9,19 +9,30 @@ module.exports = function() {
         /*
          * Save the device inside the "db".
          */
-        save(device) {
-            // device.id = crypto.randomBytes(20).toString('hex'); // fast enough for our purpose
+        save(device, create_id) {
+            if(create_id){
+                device.id = 'device_' + crypto.randomBytes(10).toString('hex'); // fast enough for our purpose
+            }
             this.deviceList.push(device);
-            return 1;           
+            return device.id;           
         },
         saveApp(id, app, appID) {
+            var created_appID;
             app.forEach(element =>{
-                // element.id = crypto.randomBytes(20).toString('hex');
-                element.id = appID;
+                if(appID === undefined){
+                    // element.id = 'app_' + crypto.randomBytes(10).toString('hex');
+                    created_appID = element.id;
+                } else {
+                    element.id = appID;
+                }
                 element.device_id = id;
                 this.appList.push(element);
             });
-            return 1;
+            if(appID === undefined) {
+                return created_appID;
+            } else {
+                return appID;
+            }
         },
         /*
          * Retrieve a device apps with a given device id or return all the devices if the id is undefined.
