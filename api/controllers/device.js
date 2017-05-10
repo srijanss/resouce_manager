@@ -1,4 +1,7 @@
 'use strict';
+
+    var crypto = require('crypto');
+
     // Include our "db"
     var db = require('../../config/db')();
     // Exports all the functions to perform on the db
@@ -36,7 +39,9 @@
         var id = req.swagger.params.id.value;
         var device = db.find(id);
         if(device){
-            res.json({success: db.saveApp(id, req.body), description: "Application added to the list"});
+            var appID = 'app_' + crypto.randomBytes(10).toString('hex');
+            console.log(req.body);
+            res.json({success: db.saveApp(id, req.body, appID), description: "Application added to the list"});
         } else {
             res.json({success: "204", description: "Device with id " + id +" not found"});
         }
