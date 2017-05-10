@@ -1,5 +1,6 @@
 'use strict';
 
+// Before running broker run mongodb daemon : mongod --dbpath=data
 var mosca = require('mosca');
 
 var pubsubsettings = {

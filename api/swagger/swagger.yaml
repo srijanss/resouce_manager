@@ -255,10 +255,10 @@ definitions:
         image:
           type: string
           description: Application name
-        # version:
-        #   type: string
-          # description: Application version
+        version:
+          type: string
+          description: Application version
       required:
         # - id
         - image
-        # - version
+        - version

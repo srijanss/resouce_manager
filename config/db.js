@@ -75,7 +75,7 @@ module.exports = function() {
                 return (element.device_id === id && element.id === app_id);
             });
             if(appIndex !== -1) {
-                this.appList[appIndex].name = app[0].name;
+                this.appList[appIndex].image = app[0].image;
                 this.appList[appIndex].version = app[0].version;
                 return 1;
             }else {

@@ -77,7 +77,7 @@ Client.prototype.getdevices = function() {
 		topic_options.pop();
 		tty_topic = this.create_topic(topic_options);
 		this.subscribe(tty_topic);
-		this.conn.on('message', (topic, message) => {
+		this.conn.on('message', (topic, message) => { // listening to event : this.conn.emit('message', topic, message)
 			if(topic === tty_topic) {
 				message = JSON.parse(message);
 				console.log(message);
@@ -394,9 +394,9 @@ Client.prototype.install_app = function(topicheader, clientId, applist) {
 				console.log(' Message received from Published install option');
 				var applist = JSON.parse(message).applist;
 				applist.forEach(app =>{
-					dockercmd.run(app.name, '10011:10010');
+					dockercmd.run(app.image, '10011:10010');
 					dockercmd.once('imagerunning', () => {
-						dockercmd.imageID(app.name);
+						dockercmd.imageID(app.image);
 						dockercmd.once('gotimageID', () => {
 							// res.json({'imageid': dockercmd.IMAGEID, 'status': 'Image Running'});
 							console.log({'imageid': dockercmd.IMAGEID, 'status': 'Image Running'});
